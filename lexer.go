@@ -197,16 +197,13 @@ func (l *lexer) lexString(quote byte) (string, bool) {
 			next := l.advance()
 			switch next {
 			case quote, '\\':
+				// Only the quote char and backslash itself are escapes.
 				sb.WriteByte(next)
-			case 'n':
-				sb.WriteByte('\n')
-			case 't':
-				sb.WriteByte('\t')
-			case 'r':
-				sb.WriteByte('\r')
 			default:
-				// Unknown escape: keep both bytes literally (FQL values often
-				// contain Windows paths written with single backslashes).
+				// Everything else stays literal: FQL values are full of
+				// Windows paths ('*\regsvr32.exe') and regex escapes ('\d+')
+				// where \r \n \t \d must remain backslash + char, not a
+				// control character.
 				sb.WriteByte('\\')
 				sb.WriteByte(next)
 			}

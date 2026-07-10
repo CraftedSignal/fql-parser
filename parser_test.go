@@ -112,6 +112,24 @@ func TestParseWindowsPathValue(t *testing.T) {
 	}
 }
 
+func TestParseBackslashLetterStaysLiteral(t *testing.T) {
+	// \r \n \t \d must remain backslash+char (Windows paths, regex escapes),
+	// never decode to control characters.
+	cases := map[string]string{
+		`ImageFileName:'*\regsvr32.exe'`: `*\regsvr32.exe`,
+		`FilePath:'*\notepad.exe'`:       `*\notepad.exe`,
+		`FilePath:'*\temp\*'`:            `*\temp\*`,
+		`CommandLine~'.*\d+\.exe'`:       `.*\d+\.exe`,
+	}
+	for query, want := range cases {
+		q := mustParse(t, query)
+		cond := q.Expr.(*ConditionExpr)
+		if cond.Value.Scalar != want {
+			t.Fatalf("query %q: value = %q, want %q", query, cond.Value.Scalar, want)
+		}
+	}
+}
+
 func TestParseEscapedQuote(t *testing.T) {
 	q := mustParse(t, `CommandLine:'it\'s fine'`)
 	cond := q.Expr.(*ConditionExpr)
