@@ -72,4 +72,4 @@ fmt.Println(q.String()) // canonical re-rendering (round-trips)
 
 ## License
 
-MIT
+AGPL-3.0 — see [LICENSE](LICENSE).
