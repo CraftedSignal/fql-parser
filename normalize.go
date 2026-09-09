@@ -23,13 +23,66 @@ func NormalizeQuery(query string) string {
 		}
 	}
 
-	replacer := strings.NewReplacer(
-		"\u2018", "'", "\u2019", "'", // smart single quotes
-		"\u201c", `"`, "\u201d", `"`, // smart double quotes
-		"\u00a0", " ", // non-breaking space
-		"\u200b", "", "\u200c", "", "\u200d", "", "\ufeff", "", // zero-width chars and BOM
-	)
-	return replacer.Replace(q)
+	return normalizeTypography(q)
+}
+
+func normalizeTypography(query string) string {
+	var normalized strings.Builder
+	normalized.Grow(len(query))
+
+	var quote rune
+	escaped := false
+	for _, current := range query {
+		if escaped {
+			normalized.WriteRune(current)
+			escaped = false
+			continue
+		}
+		if current == '\\' && quote != 0 {
+			normalized.WriteRune(current)
+			escaped = true
+			continue
+		}
+
+		switch current {
+		case '\u00a0':
+			normalized.WriteByte(' ')
+		case '\u200b', '\u200c', '\u200d', '\ufeff':
+		case '\'', '"':
+			normalized.WriteRune(current)
+			if quote == 0 {
+				quote = current
+			} else if quote == current {
+				quote = 0
+			}
+		case '\u2018', '\u2019':
+			if quote == '\'' || quote == '"' {
+				normalized.WriteRune(current)
+				continue
+			}
+			normalized.WriteByte('\'')
+			if quote == 0 {
+				quote = '\u2019'
+			} else if quote == '\u2019' {
+				quote = 0
+			}
+		case '\u201c', '\u201d':
+			if quote == '\'' || quote == '"' {
+				normalized.WriteRune(current)
+				continue
+			}
+			normalized.WriteByte('"')
+			if quote == 0 {
+				quote = '\u201d'
+			} else if quote == '\u201d' {
+				quote = 0
+			}
+		default:
+			normalized.WriteRune(current)
+		}
+	}
+
+	return normalized.String()
 }
 
 // isFenceInfoString reports whether s looks like a code-fence language tag

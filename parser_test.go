@@ -47,6 +47,22 @@ func TestParseListValue(t *testing.T) {
 	}
 }
 
+func TestParseBracketedFieldPaths(t *testing.T) {
+	for _, query := range []string{
+		`TargetResources[0].userPrincipalName:*`,
+		`properties.targetResources[].modifiedProperties[].displayName:'*keyCredentials*'`,
+	} {
+		parsed := mustParse(t, query)
+		condition, ok := parsed.Expr.(*ConditionExpr)
+		if !ok {
+			t.Fatalf("expected ConditionExpr for %q, got %T", query, parsed.Expr)
+		}
+		if condition.Field == "" {
+			t.Fatalf("expected bracketed field path for %q", query)
+		}
+	}
+}
+
 func TestParseAndOrPrecedence(t *testing.T) {
 	// + binds tighter than , — OR of two ANDs
 	q := mustParse(t, `a:'1' + b:'2', c:'3'`)

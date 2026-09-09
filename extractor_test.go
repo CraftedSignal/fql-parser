@@ -157,6 +157,18 @@ func TestNormalizeQuery(t *testing.T) {
 	}
 }
 
+func TestNormalizeQueryPreservesSmartApostropheInsideQuotedValue(t *testing.T) {
+	in := `FileDescription:'GnuPG’s OpenPGP tool'`
+	out := NormalizeQuery(in)
+	if out != in {
+		t.Fatalf("unexpected normalization: %q", out)
+	}
+	result := ExtractConditions(out)
+	if len(result.Errors) > 0 {
+		t.Fatalf("normalized query should parse: %v", result.Errors)
+	}
+}
+
 // TestPlatformCorpus covers the exact shapes the CraftedSignal translator and
 // hunt dialect emit — the primary consumers of this library.
 func TestPlatformCorpus(t *testing.T) {
@@ -169,6 +181,7 @@ func TestPlatformCorpus(t *testing.T) {
 		{`!ParentBaseFileName:['sccm.exe','schtasks.exe'] + CommandLine~'.*mimikatz.*'`, 2},
 		{`(RemotePort:445, RemotePort:3389) | timerange(24h)`, 1}, // merged same-field OR
 		{`event_simpleName:['DnsRequest'] + DomainName:'*.evil.example'`, 2},
+		{`TargetResources[0].userPrincipalName:* + properties.targetResources[].modifiedProperties[].displayName:'*keyCredentials*'`, 2},
 	}
 	for _, tc := range corpus {
 		result := ExtractConditions(tc.query)

@@ -213,7 +213,7 @@ func (p *parser) parseUnary(depth int) Expr {
 	if t.Type == TokenBang {
 		p.next()
 		// `!field:value` reads as a negated condition; `!(...)` as a negated group.
-		if p.cur().Type == TokenWord && isOperatorType(p.peekType(1)) {
+		if p.cur().Type == TokenWord && p.conditionOperatorIndex() >= 0 {
 			cond := p.parseCondition()
 			if c, ok := cond.(*ConditionExpr); ok {
 				c.Negated = true
@@ -277,7 +277,7 @@ func (p *parser) parsePrimary(depth int) Expr {
 		return &GroupExpr{X: inner}
 
 	case TokenWord:
-		if isOperatorType(p.peekType(1)) {
+		if p.conditionOperatorIndex() >= 0 {
 			return p.parseCondition()
 		}
 		p.next()
@@ -299,10 +299,41 @@ func (p *parser) parsePrimary(depth int) Expr {
 }
 
 func (p *parser) parseCondition() Expr {
-	field := p.next().Text
+	operatorIndex := p.conditionOperatorIndex()
+	if operatorIndex < 0 {
+		p.errorf("expected field operator")
+		return &SearchExpr{Term: p.next().Text}
+	}
+	field := strings.TrimSpace(p.input[p.cur().Pos:p.tokens[operatorIndex].Pos])
+	p.pos = operatorIndex
 	op := operatorText(p.next().Type)
 	value := p.parseValue()
 	return &ConditionExpr{Field: field, Operator: op, Value: value}
+}
+
+func (p *parser) conditionOperatorIndex() int {
+	if p.cur().Type != TokenWord {
+		return -1
+	}
+	expectedPos := p.cur().Pos + len(p.cur().Text)
+	for index := p.pos + 1; index < len(p.tokens); index++ {
+		token := p.tokens[index]
+		if token.Pos != expectedPos {
+			return -1
+		}
+		if isOperatorType(token.Type) {
+			return index
+		}
+		switch token.Type {
+		case TokenWord:
+			expectedPos = token.Pos + len(token.Text)
+		case TokenLBrack, TokenRBrack:
+			expectedPos = token.Pos + 1
+		default:
+			return -1
+		}
+	}
+	return -1
 }
 
 func (p *parser) parseValue() Value {
