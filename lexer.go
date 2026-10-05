@@ -173,13 +173,7 @@ func (l *lexer) lex() []Token {
 
 		default:
 			word := l.lexWord()
-			if word == "" {
-				// Unknown byte (e.g. control char) — consume so lexing progresses.
-				l.advance()
-				tokens = append(tokens, Token{Type: TokenIllegal, Text: string(ch), Pos: startPos, Line: startLine, Col: startCol})
-			} else {
-				tokens = append(tokens, Token{Type: TokenWord, Text: word, Pos: startPos, Line: startLine, Col: startCol})
-			}
+			tokens = append(tokens, Token{Type: TokenWord, Text: word, Pos: startPos, Line: startLine, Col: startCol})
 		}
 	}
 	tokens = append(tokens, Token{Type: TokenEOF, Pos: l.pos, Line: l.line, Col: l.col})

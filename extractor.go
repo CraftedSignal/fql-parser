@@ -2,6 +2,8 @@ package fql
 
 import "strings"
 
+var extractHook func(string)
+
 // Condition is a single extracted field comparison.
 type Condition struct {
 	Field           string   `json:"field"`
@@ -41,6 +43,9 @@ func ExtractConditions(query string) (result *ParseResult) {
 			result.Errors = append(result.Errors, "internal extraction failure")
 		}
 	}()
+	if extractHook != nil {
+		extractHook(query)
+	}
 
 	p := newParser(query)
 	q := p.parseQuery()

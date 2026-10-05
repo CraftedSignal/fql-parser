@@ -23,7 +23,7 @@ func NormalizeQuery(query string) string {
 		}
 	}
 
-	return normalizeTypography(q)
+	return strings.TrimSpace(normalizeTypography(q))
 }
 
 func normalizeTypography(query string) string {
