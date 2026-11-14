@@ -63,7 +63,7 @@ func TestClassicAPISyntax(t *testing.T) {
 				}
 				value = alts[0]
 			}
-			want := Condition{Field: tt.field, Operator: tt.op, Value: value, Alternatives: alts, CaseInsensitive: tt.insensitive}
+			want := Condition{Field: tt.field, Operator: tt.op, Value: value, Alternatives: alts, CaseInsensitive: tt.insensitive, Bracketed: tt.value.IsList()}
 			extracted := ExtractConditions(tt.input)
 			if len(extracted.Errors) != 0 || len(extracted.Searches) != 0 || !reflect.DeepEqual(extracted.Conditions, []Condition{want}) {
 				t.Fatalf("ExtractConditions: %#v", extracted)
