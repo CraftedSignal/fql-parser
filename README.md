@@ -75,8 +75,9 @@ fmt.Println(q.String()) // canonical re-rendering (round-trips)
   Bracketed exact matches retain their AST list shape, but extracted conditions
   and semantic leaves currently share the `Alternatives` representation with
   merged ORs; this does not preserve their distinct matching semantics.
-- Same-field OR groups (`(f:'a', f:'b')`) and `[...]` lists surface as one
-  condition with `Alternatives`.
+- Positive same-field OR groups (`(f:'a', f:'b')`) and `[...]` lists surface as
+  one condition with `Alternatives`. Outer NOT may negate a positive OR union;
+  individually negated leaves and negative operators keep separate OR conditions.
 - `ExtractConditions` never panics and never hangs: input size and nesting
   depth are bounded, extraction is wrapped in a recover guard, and parse
   problems are reported in `ParseResult.Errors` while extraction continues
