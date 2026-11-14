@@ -99,7 +99,7 @@ func semanticConditionFromConditionExpr(expression *ConditionExpr) Condition {
 		Field:           expression.Field,
 		Operator:        expression.Operator,
 		Negated:         expression.Negated,
-		CaseInsensitive: expression.Operator == "~" || expression.Operator == "!~",
+		CaseInsensitive: isTextMatchOperator(expression.Operator),
 	}
 	if expression.Value.IsList() {
 		condition.Alternatives = make([]string, 0, len(expression.Value.List))

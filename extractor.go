@@ -7,7 +7,7 @@ var extractHook func(string)
 // Condition is a single extracted field comparison.
 type Condition struct {
 	Field           string   `json:"field"`
-	Operator        string   `json:"operator"` // ":", "=", "~", "!:", "!~", "!=", ">", ">=", "<", "<="
+	Operator        string   `json:"operator"` // raw spelling; includes classic colon-prefixed operators and :*
 	Value           string   `json:"value"`
 	Negated         bool     `json:"negated"`
 	CaseInsensitive bool     `json:"case_insensitive,omitempty"` // ~ text-match operators
@@ -118,7 +118,7 @@ func (ex *extractor) condition(c *ConditionExpr, negated bool, connector string)
 		Field:           c.Field,
 		Operator:        c.Operator,
 		Negated:         negated != c.Negated,
-		CaseInsensitive: c.Operator == "~" || c.Operator == "!~",
+		CaseInsensitive: isTextMatchOperator(c.Operator),
 		LogicalOp:       connector,
 	}
 	if c.Value.IsList() {
