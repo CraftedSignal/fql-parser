@@ -100,6 +100,7 @@ func semanticConditionFromConditionExpr(expression *ConditionExpr) Condition {
 		Operator:        expression.Operator,
 		Negated:         expression.Negated,
 		CaseInsensitive: isTextMatchOperator(expression.Operator),
+		Bracketed:       expression.Value.IsList(),
 	}
 	if expression.Value.IsList() {
 		condition.Alternatives = make([]string, 0, len(expression.Value.List))

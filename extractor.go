@@ -1,10 +1,14 @@
 package fql
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 var extractHook func(string)
 
-// Condition is a single extracted field comparison.
+// Condition is a single extracted field comparison. Alternatives contains both
+// bracketed RHS values and merged scalar ORs; Bracketed distinguishes their origin.
 type Condition struct {
 	Field           string   `json:"field"`
 	Operator        string   `json:"operator"` // raw spelling; includes classic colon-prefixed operators and :*
@@ -13,7 +17,10 @@ type Condition struct {
 	CaseInsensitive bool     `json:"case_insensitive,omitempty"` // ~ text-match operators
 	LogicalOp       string   `json:"logical_op"`                 // "AND" or "OR" connecting to the previous condition
 	Alternatives    []string `json:"alternatives,omitempty"`     // list values and merged same-field ORs
-	PipeStage       int      `json:"pipe_stage"`                 // 0 = main filter expression
+	// Bracketed records source RHS brackets, including empty lists. It does not
+	// define endpoint-independent list evaluation or override the raw operator.
+	Bracketed bool `json:"bracketed,omitempty"`
+	PipeStage int  `json:"pipe_stage"` // 0 = main filter expression
 }
 
 // PipeInfo describes one piped command.
@@ -119,6 +126,7 @@ func (ex *extractor) condition(c *ConditionExpr, negated bool, connector string)
 		Operator:        c.Operator,
 		Negated:         negated != c.Negated,
 		CaseInsensitive: isTextMatchOperator(c.Operator),
+		Bracketed:       c.Value.IsList(),
 		LogicalOp:       connector,
 	}
 	if c.Value.IsList() {
@@ -172,15 +180,35 @@ func (ex *extractor) mergeSameFieldOr(or *OrExpr, negated bool, connector string
 	return merged, true
 }
 
-// DeduplicateConditions removes exact duplicates while preserving order.
+// conditionIdentity keeps predicate metadata separate from the ordered, exact-byte
+// Alternatives encoding. LogicalOp is deliberately excluded: it is a connector.
+type conditionIdentity struct {
+	field, operator, value, alternatives string
+	negated, caseInsensitive, bracketed  bool
+	pipeStage                            int
+}
+
+// DeduplicateConditions removes duplicate predicates, preserving first-occurrence
+// order and field-name case normalization. Literal bytes and matching/stage metadata
+// must agree. LogicalOp is ignored, so this is not a Boolean expression simplifier:
+// removing predicates can change arbitrary flat boolean topology. Results retain
+// shallow copies of first occurrences and share their Alternatives slices.
 func DeduplicateConditions(conditions []Condition) []Condition {
-	seen := make(map[string]bool, len(conditions))
+	seen := make(map[conditionIdentity]bool, len(conditions))
 	out := make([]Condition, 0, len(conditions))
 	for _, c := range conditions {
-		key := strings.ToLower(c.Field) + "\x00" + c.Operator + "\x00" + c.Value + "\x00" +
-			strings.ToLower(strings.Join(c.Alternatives, "\x01"))
-		if c.Negated {
-			key += "\x00!"
+		var alternatives strings.Builder
+		for _, value := range c.Alternatives {
+			// Length prefixes preserve boundaries and arbitrary bytes, including
+			// invalid UTF-8. No elements and one empty element remain distinct.
+			alternatives.WriteString(strconv.Itoa(len(value)))
+			alternatives.WriteByte(':')
+			alternatives.WriteString(value)
+		}
+		key := conditionIdentity{
+			field: strings.ToLower(c.Field), operator: c.Operator, value: c.Value,
+			alternatives: alternatives.String(), negated: c.Negated,
+			caseInsensitive: c.CaseInsensitive, bracketed: c.Bracketed, pipeStage: c.PipeStage,
 		}
 		if !seen[key] {
 			seen[key] = true
