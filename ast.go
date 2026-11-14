@@ -107,7 +107,18 @@ func (e *AndExpr) render(sb *strings.Builder) {
 }
 
 func (e *NotExpr) render(sb *strings.Builder) {
-	sb.WriteByte('!')
+	// Bang accepts a primary operand, so use recursive NOT syntax when the
+	// child itself starts with a negation. Adding groups would consume depth.
+	prefix := "!"
+	switch child := e.X.(type) {
+	case *NotExpr:
+		prefix = "NOT "
+	case *ConditionExpr:
+		if child.Negated {
+			prefix = "NOT "
+		}
+	}
+	sb.WriteString(prefix)
 	e.X.render(sb)
 }
 
