@@ -7,7 +7,7 @@ var extractHook func(string)
 // Condition is a single extracted field comparison.
 type Condition struct {
 	Field           string   `json:"field"`
-	Operator        string   `json:"operator"` // ":", "=", "~", "!:", "!~", "!=", ">", ">=", "<", "<="
+	Operator        string   `json:"operator"` // raw spelling; includes classic colon-prefixed operators and :*
 	Value           string   `json:"value"`
 	Negated         bool     `json:"negated"`
 	CaseInsensitive bool     `json:"case_insensitive,omitempty"` // ~ text-match operators
@@ -118,7 +118,7 @@ func (ex *extractor) condition(c *ConditionExpr, negated bool, connector string)
 		Field:           c.Field,
 		Operator:        c.Operator,
 		Negated:         negated != c.Negated,
-		CaseInsensitive: c.Operator == "~" || c.Operator == "!~",
+		CaseInsensitive: isTextMatchOperator(c.Operator),
 		LogicalOp:       connector,
 	}
 	if c.Value.IsList() {
@@ -137,8 +137,8 @@ func (ex *extractor) condition(c *ConditionExpr, negated bool, connector string)
 }
 
 // mergeSameFieldOr collapses an OR group whose terms are all conditions on
-// the same field with the same operator and polarity into one condition with
-// Alternatives — e.g. (CommandLine:'*a*', CommandLine:'*b*').
+// the same field with the same positive operator and unnegated leaves into
+// one condition with Alternatives — e.g. (CommandLine:'*a*', CommandLine:'*b*').
 func (ex *extractor) mergeSameFieldOr(or *OrExpr, negated bool, connector string) (Condition, bool) {
 	if len(or.Terms) < 2 {
 		return Condition{}, false
@@ -146,7 +146,13 @@ func (ex *extractor) mergeSameFieldOr(or *OrExpr, negated bool, connector string
 	var conds []*ConditionExpr
 	for _, t := range or.Terms {
 		c, ok := t.(*ConditionExpr)
-		if !ok || c.Value.IsList() {
+		if !ok || c.Value.IsList() || c.Negated {
+			return Condition{}, false
+		}
+		// A union of negative comparisons is not a negated positive union.
+		// Keep outer NOT handling separate from each leaf's own polarity.
+		switch c.Operator {
+		case "!:", "!=", "!~", ":!", ":!~":
 			return Condition{}, false
 		}
 		conds = append(conds, c)

@@ -43,7 +43,7 @@ type GroupExpr struct {
 // ConditionExpr is a single field comparison, e.g. CommandLine:'*-enc*'.
 type ConditionExpr struct {
 	Field    string
-	Operator string // ":", "=", "~", "!:", "!~", "!=", ">", "<", ">=", "<="
+	Operator string // raw spelling, including classic :!, :~, :!~, :>, :>=, :<, :<=, :*
 	Value    Value
 	Negated  bool // leading ! on the field
 }
@@ -168,4 +168,13 @@ func ExprString(e Expr) string {
 	var sb strings.Builder
 	e.render(&sb)
 	return sb.String()
+}
+
+// isTextMatchOperator recognizes both classic and convenience text matches.
+func isTextMatchOperator(operator string) bool {
+	switch operator {
+	case "~", "!~", ":~", ":!~":
+		return true
+	}
+	return false
 }

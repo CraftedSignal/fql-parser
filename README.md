@@ -20,6 +20,12 @@ spelling, `AND`/`OR`/`NOT` keywords).
 LogScale / CrowdStrike Query Language (CQL) — the pipe-based Humio language —
 is a different, much larger language and is **out of scope**.
 
+Classic property/operator syntax follows the [official Falcon FQL guide](https://developer.crowdstrike.com/api-reference/falcon-query-language/):
+`platform_name:!'Linux'`, `hostname:~'Server'`, `posts.count:>=10`, and
+`hostname:*'prod*'`. The last form keeps the wildcard hint in Operator (`:*`)
+and the quoted pattern in Value. Bare `hostname:*` remains a value comparison.
+API endpoint restrictions can differ, especially for list combinations.
+
 ## Usage
 
 ```go
@@ -61,10 +67,17 @@ fmt.Println(q.String()) // canonical re-rendering (round-trips)
 ## Semantics
 
 - Operators are reported **raw** (`:`, `=`, `~`, `!:`, `!~`, `!=`, `>`, `>=`,
-  `<`, `<=`); only `!field` prefixes and `NOT` fold into `Condition.Negated`.
+  `<`, `<=`, classic `:!`, `:~`, `:!~`, `:>`, `:>=`, `:<`, `:<=`, and `:*`); only `!field` prefixes and `NOT` fold into `Condition.Negated`.
   Consumers decide semantic normalization.
-- Same-field OR groups (`(f:'a', f:'b')`) and `[...]` lists surface as one
-  condition with `Alternatives`.
+- Flat conditions are a best-effort view of grouped Boolean expressions. Use
+  `AnalyzeQuery.Expression` when exact grouping and negation matter; for example,
+  `!(a:1+b:2)` cannot be reconstructed from the flat condition connectors.
+  Bracketed exact matches retain their AST list shape, but extracted conditions
+  and semantic leaves currently share the `Alternatives` representation with
+  merged ORs; this does not preserve their distinct matching semantics.
+- Positive same-field OR groups (`(f:'a', f:'b')`) and `[...]` lists surface as
+  one condition with `Alternatives`. Outer NOT may negate a positive OR union;
+  individually negated leaves and negative operators keep separate OR conditions.
 - `ExtractConditions` never panics and never hangs: input size and nesting
   depth are bounded, extraction is wrapped in a recover guard, and parse
   problems are reported in `ParseResult.Errors` while extraction continues

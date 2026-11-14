@@ -313,6 +313,23 @@ func (p *parser) parseCondition() Expr {
 	field := strings.TrimSpace(p.input[p.cur().Pos:p.tokens[operatorIndex].Pos])
 	p.pos = operatorIndex
 	op := operatorText(p.next().Type)
+	if op == ":" {
+		// Classic FQL puts an optional operator after the property colon.
+		switch p.cur().Type {
+		case TokenBang:
+			p.next()
+			op += "!"
+		case TokenTilde, TokenNTilde, TokenGT, TokenGTE, TokenLT, TokenLTE:
+			op += operatorText(p.next().Type)
+		case TokenWord:
+			// A bare star remains an ordinary value unless a quoted value
+			// follows it, in which case it is the classic wildcard hint.
+			if p.cur().Text == "*" && p.peekType(1) == TokenString {
+				p.next()
+				op += "*"
+			}
+		}
+	}
 	value := p.parseValue()
 	return &ConditionExpr{Field: field, Operator: op, Value: value}
 }
