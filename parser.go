@@ -9,7 +9,7 @@ const (
 	// MaxInputSize bounds accepted query text; larger inputs are rejected
 	// rather than parsed, keeping worst-case work linear and small.
 	MaxInputSize = 128 * 1024
-	// MaxDepth bounds expression nesting to keep recursion shallow.
+	// MaxDepth bounds grouped and unary expression nesting.
 	MaxDepth = 64
 )
 
@@ -151,7 +151,8 @@ func (p *parser) recoverToPipe() {
 func (p *parser) parseExpr(depth int) Expr {
 	if depth > MaxDepth {
 		p.errorf("expression nesting too deep (max %d)", MaxDepth)
-		return nil
+		p.pos = len(p.tokens) - 1
+		return &SearchExpr{}
 	}
 	first := p.parseAnd(depth)
 	terms := []Expr{first}
@@ -209,6 +210,11 @@ func (p *parser) startsUnary() bool {
 }
 
 func (p *parser) parseUnary(depth int) Expr {
+	if depth > MaxDepth {
+		p.errorf("expression nesting too deep (max %d)", MaxDepth)
+		p.pos = len(p.tokens) - 1
+		return &SearchExpr{}
+	}
 	t := p.cur()
 	if t.Type == TokenBang {
 		p.next()
@@ -220,11 +226,11 @@ func (p *parser) parseUnary(depth int) Expr {
 			}
 			return cond
 		}
-		return &NotExpr{X: p.parsePrimary(depth)}
+		return &NotExpr{X: p.parsePrimary(depth + 1)}
 	}
 	if t.Type == TokenWord && strings.EqualFold(t.Text, "NOT") && p.peekType(1) != TokenEOF && !isOperatorType(p.peekType(1)) {
 		p.next()
-		return &NotExpr{X: p.parseUnary(depth)}
+		return &NotExpr{X: p.parseUnary(depth + 1)}
 	}
 	return p.parsePrimary(depth)
 }
