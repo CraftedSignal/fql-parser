@@ -44,7 +44,10 @@ func TestClassicAPISyntax(t *testing.T) {
 			if !ok {
 				t.Fatalf("want condition, got %#v", q.Expr)
 			}
-			if c.Field != tt.field || c.Operator != tt.op || !reflect.DeepEqual(c.Value, tt.value) || c.Negated {
+			valueWithoutSource := c.Value
+			valueWithoutSource.List = append([]Value(nil), c.Value.List...)
+			withoutValueSource(&valueWithoutSource)
+			if c.Field != tt.field || c.Operator != tt.op || !reflect.DeepEqual(valueWithoutSource, tt.value) || c.Negated {
 				t.Fatalf("unexpected AST: %#v", c)
 			}
 			expr, err := ParseExpression(tt.input)
@@ -52,7 +55,7 @@ func TestClassicAPISyntax(t *testing.T) {
 				t.Fatalf("ParseExpression: %#v, %v", expr, err)
 			}
 			round, err := Parse(q.String())
-			if err != nil || !reflect.DeepEqual(q, round) || round.String() != q.String() {
+			if err != nil || !reflect.DeepEqual(withoutASTSource(q), withoutASTSource(round)) || round.String() != q.String() {
 				t.Fatalf("unstable round trip: %s, %v", q.String(), err)
 			}
 			var alts []string
@@ -65,14 +68,14 @@ func TestClassicAPISyntax(t *testing.T) {
 			}
 			want := Condition{Field: tt.field, Operator: tt.op, Value: value, Alternatives: alts, CaseInsensitive: tt.insensitive, Bracketed: tt.value.IsList()}
 			extracted := ExtractConditions(tt.input)
-			if len(extracted.Errors) != 0 || len(extracted.Searches) != 0 || !reflect.DeepEqual(extracted.Conditions, []Condition{want}) {
+			if len(extracted.Errors) != 0 || len(extracted.Searches) != 0 || !reflect.DeepEqual(legacyConditions(extracted.Conditions), []Condition{want}) {
 				t.Fatalf("ExtractConditions: %#v", extracted)
 			}
 			analyzed := AnalyzeQuery(tt.input)
-			if len(analyzed.Errors) != 0 || len(analyzed.Searches) != 0 || !reflect.DeepEqual(analyzed.Conditions, []Condition{want}) || analyzed.Expression.Operator != "condition" || !reflect.DeepEqual(analyzed.Expression.Condition, &want) {
+			if len(analyzed.Errors) != 0 || len(analyzed.Searches) != 0 || !reflect.DeepEqual(legacyConditions(analyzed.Conditions), []Condition{want}) || analyzed.Expression.Operator != "condition" || !reflect.DeepEqual(legacyCondition(*analyzed.Expression.Condition), want) {
 				t.Fatalf("AnalyzeQuery: %#v / %#v", analyzed, analyzed.Expression)
 			}
-			if !reflect.DeepEqual(analyzed, AnalyzeQuery(q.String())) {
+			if !reflect.DeepEqual(withoutSemanticSource(analyzed), withoutSemanticSource(AnalyzeQuery(q.String()))) {
 				t.Fatal("semantic round trip changed")
 			}
 		})
@@ -104,7 +107,7 @@ func TestClassicOperatorUnaryNegation(t *testing.T) {
 			if len(r.Errors) != 0 || len(r.Searches) != 0 || len(r.Conditions) != 1 || r.Conditions[0].Operator != op || r.Conditions[0].Negated != negated || !reflect.DeepEqual(r.Conditions, a.Conditions) || len(a.Errors) != 0 || len(a.Searches) != 0 {
 				t.Fatalf("negation lost: %#v / %#v", r, a)
 			}
-			if !reflect.DeepEqual(a.Conditions, AnalyzeQuery(q.String()).Conditions) {
+			if !reflect.DeepEqual(withoutSemanticSource(a).Conditions, withoutSemanticSource(AnalyzeQuery(q.String())).Conditions) {
 				t.Fatal("semantic negation round trip changed")
 			}
 		})

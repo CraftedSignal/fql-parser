@@ -76,6 +76,20 @@ fmt.Println(q.String()) // canonical re-rendering (round-trips)
   semantic leaves set `Condition.Bracketed` directly from source brackets,
   including singleton and empty lists. Scalars and merged scalar ORs leave it
   false; quoted text containing brackets does not set it.
+- `Condition.RHS` preserves authored operand syntax when parsing succeeds:
+  `Kind` distinguishes quoted strings, signed decimal integers, lowercase
+  `true`/`false`, lowercase `null`, other bare words, and lists. `Source` is the
+  exact operand text, including quote style, escapes, and internal list spacing.
+  `Value` on a string is decoded; numbers retain their spelling, and null has
+  an empty operand `Value`. Dates inside quotes remain strings. A nil `RHS` on
+  a caller-created condition means syntax provenance is unknown. The legacy
+  `Condition.Value` and `Alternatives` fields keep their prior projections.
+- An authored bracket list has `RHS.Kind == OperandList` with its original
+  `Source` and ordered `Items`. A merged scalar OR also has list kind, but its
+  root `Source` is empty and each item retains its own source. The complete
+  `AnalyzeQuery.Expression` keeps each original condition leaf and Boolean
+  grouping. `Parse` exposes the same exact source in `Value.Source`; `String()`
+  remains a canonical rendering and may change that source spelling.
 - Positive same-field OR groups (`(f:'a', f:'b')`) and `[...]` lists surface as
   one condition with `Alternatives`. Outer NOT may negate a positive OR union;
   individually negated leaves and negative operators keep separate OR conditions.
@@ -91,7 +105,7 @@ fmt.Println(q.String()) // canonical re-rendering (round-trips)
   and pipe stage; field names retain case-insensitive identity. It ignores
   `LogicalOp` and keeps the first occurrence unchanged, so it is not a general
   Boolean expression simplifier. Returned conditions are shallow copies and
-  share `Alternatives` slices with their first input occurrences.
+  share `Alternatives` slices and `RHS` with their first input occurrences.
 - `ExtractConditions` never panics and never hangs: input size and nesting
   depth are bounded, extraction is wrapped in a recover guard, and parse
   problems are reported in `ParseResult.Errors` while extraction continues
@@ -107,8 +121,9 @@ restrictions and unsupported combinations need explicit handling. Consumers
 reading only `Value` and `Alternatives` do not gain these matching semantics
 automatically.
 
-Bracketed condition JSON gains `"bracketed": true`, even when empty alternatives
-are omitted. Non-bracketed condition JSON is unchanged because false is omitted.
+Bracketed condition JSON includes `"bracketed": true`, even when empty alternatives
+are omitted. Parsed conditions also include `"rhs"`; non-bracketed conditions
+omit the false bracket flag.
 For legacy or manually built conditions, false only means no provenance was
 supplied; do not infer brackets from `Alternatives`. External unkeyed Go
 `Condition` struct literals may need updating; prefer keyed literals.

@@ -59,6 +59,7 @@ type Value struct {
 	Scalar string
 	Quoted bool    // scalar came from a quoted string literal
 	List   []Value // non-nil for [a, b] lists
+	Source string  // exact authored RHS bytes; canonical rendering may differ
 }
 
 // IsList reports whether the value is a bracketed list.

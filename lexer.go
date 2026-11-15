@@ -35,6 +35,7 @@ type Token struct {
 	Type TokenType
 	Text string // raw text; for TokenString this is the DECODED value
 	Pos  int    // byte offset in the input
+	End  int    // exclusive byte offset in the input, before any following whitespace
 	Line int    // 1-based line
 	Col  int    // 1-based column
 }
@@ -175,8 +176,9 @@ func (l *lexer) lex() []Token {
 			word := l.lexWord()
 			tokens = append(tokens, Token{Type: TokenWord, Text: word, Pos: startPos, Line: startLine, Col: startCol})
 		}
+		tokens[len(tokens)-1].End = l.pos
 	}
-	tokens = append(tokens, Token{Type: TokenEOF, Pos: l.pos, Line: l.line, Col: l.col})
+	tokens = append(tokens, Token{Type: TokenEOF, Pos: l.pos, End: l.pos, Line: l.line, Col: l.col})
 	return tokens
 }
 
