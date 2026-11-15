@@ -372,7 +372,11 @@ func (p *parser) parseValue() Value {
 			}
 		}
 		if p.cur().Type == TokenRBrack {
-			p.next()
+			end := p.next().End
+			if list == nil {
+				list = []Value{}
+			}
+			return Value{List: list, Source: p.input[t.Pos:end]}
 		} else {
 			p.errorf("expected ']' to close list")
 		}
@@ -390,10 +394,20 @@ func (p *parser) parseScalar() Value {
 	switch t.Type {
 	case TokenString:
 		p.next()
-		return Value{Scalar: t.Text, Quoted: true}
+		return Value{Scalar: t.Text, Quoted: true, Source: p.input[t.Pos:t.End]}
 	case TokenWord:
 		p.next()
-		return Value{Scalar: t.Text}
+		return Value{Scalar: t.Text, Source: p.input[t.Pos:t.End]}
+	case TokenPlus:
+		// A leading + is a signed decimal only when directly followed by digits.
+		if p.peekType(1) == TokenWord && p.tokens[p.pos+1].Pos == t.End && decimalDigits(p.tokens[p.pos+1].Text) {
+			p.next()
+			word := p.next()
+			return Value{Scalar: "+" + word.Text, Source: p.input[t.Pos:word.End]}
+		}
+		p.errorf("expected value, got %q", t.Text)
+		p.next()
+		return Value{}
 	default:
 		p.errorf("expected value, got %q", t.Text)
 		p.next()

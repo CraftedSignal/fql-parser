@@ -24,7 +24,7 @@ func TestNegativeSameFieldORPreservesConditions(t *testing.T) {
 			}
 			r := ExtractConditions(tc.input)
 			a := AnalyzeQuery(tc.input)
-			if len(r.Errors) != 0 || len(a.Errors) != 0 || !reflect.DeepEqual(r.Conditions, want) || !reflect.DeepEqual(a.Conditions, want) {
+			if len(r.Errors) != 0 || len(a.Errors) != 0 || !reflect.DeepEqual(legacyConditions(r.Conditions), want) || !reflect.DeepEqual(legacyConditions(a.Conditions), want) {
 				t.Fatalf("negative OR collapsed: %#v / %#v", r, a)
 			}
 		})
@@ -39,7 +39,7 @@ func TestPositiveSameFieldORStillMergesUnderOuterNOT(t *testing.T) {
 		{`(f:'a',f:'b')`, false}, {`!(f:'a',f:'b')`, true},
 	} {
 		want := []Condition{{Field: "f", Operator: ":", Value: "a", Negated: tc.negated, Alternatives: []string{"a", "b"}}}
-		if got := ExtractConditions(tc.input); len(got.Errors) != 0 || !reflect.DeepEqual(got.Conditions, want) {
+		if got := ExtractConditions(tc.input); len(got.Errors) != 0 || !reflect.DeepEqual(legacyConditions(got.Conditions), want) {
 			t.Fatalf("%s: %#v", tc.input, got)
 		}
 	}

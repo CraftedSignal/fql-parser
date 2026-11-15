@@ -101,6 +101,7 @@ func semanticConditionFromConditionExpr(expression *ConditionExpr) Condition {
 		Negated:         expression.Negated,
 		CaseInsensitive: isTextMatchOperator(expression.Operator),
 		Bracketed:       expression.Value.IsList(),
+		RHS:             operandFromValue(expression.Value),
 	}
 	if expression.Value.IsList() {
 		condition.Alternatives = make([]string, 0, len(expression.Value.List))
@@ -124,6 +125,7 @@ func cloneSemanticConditions(conditions []Condition) []Condition {
 	for i, condition := range conditions {
 		out[i] = condition
 		out[i].Alternatives = cloneSemanticStrings(condition.Alternatives)
+		out[i].RHS = cloneOperand(condition.RHS)
 	}
 	return out
 }

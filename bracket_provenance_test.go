@@ -88,7 +88,7 @@ func TestBracketProvenanceRoundTrips(t *testing.T) {
 				t.Fatalf("ParseExpression: %#v, %v", expr, err)
 			}
 			round, err := Parse(q.String())
-			if err != nil || !reflect.DeepEqual(round, q) {
+			if err != nil || !reflect.DeepEqual(withoutASTSource(round), withoutASTSource(q)) {
 				t.Fatalf("AST round trip: %#v, %v", round, err)
 			}
 			extracted := ExtractConditions(tc.query)
@@ -112,7 +112,7 @@ func TestBracketProvenanceRoundTrips(t *testing.T) {
 					t.Fatalf("JSON lost metadata: %#v, %v", decoded, err)
 				}
 			}
-			if !reflect.DeepEqual(ExtractConditions(round.String()), extracted) || !reflect.DeepEqual(AnalyzeQuery(round.String()), semantic) {
+			if !reflect.DeepEqual(withoutExtractionSource(ExtractConditions(round.String())), withoutExtractionSource(extracted)) || !reflect.DeepEqual(withoutSemanticSource(AnalyzeQuery(round.String())), withoutSemanticSource(semantic)) {
 				t.Fatal("render/reparse changed extracted or semantic metadata")
 			}
 			encoded, err := json.Marshal(semantic)
@@ -145,7 +145,7 @@ func TestBracketProvenanceOperatorsAndNegation(t *testing.T) {
 					if strings.Contains(rhs, "Beta") {
 						want.Alternatives = append(want.Alternatives, "Beta")
 					}
-					if !reflect.DeepEqual(r.Conditions[0], want) || !reflect.DeepEqual(a.Conditions[0], want) {
+					if !reflect.DeepEqual(legacyCondition(r.Conditions[0]), want) || !reflect.DeepEqual(legacyCondition(a.Conditions[0]), want) {
 						t.Fatalf("flat metadata changed: %+v / %+v; want %+v", r.Conditions, a.Conditions, want)
 					}
 					leaf := a.Expression
@@ -162,12 +162,12 @@ func TestBracketProvenanceOperatorsAndNegation(t *testing.T) {
 						}
 					}
 					want.Negated = prefix == "!"
-					if leaf.Operator != "condition" || leaf.Condition == nil || !reflect.DeepEqual(*leaf.Condition, want) {
+					if leaf.Operator != "condition" || leaf.Condition == nil || !reflect.DeepEqual(legacyCondition(*leaf.Condition), want) {
 						t.Fatalf("semantic leaf metadata changed: %#v; want %+v", leaf, want)
 					}
 					canonical := assertNegationRoundTrip(t, query)
 					round := AnalyzeQuery(canonical)
-					if !reflect.DeepEqual(round.Conditions, a.Conditions) {
+					if !reflect.DeepEqual(withoutSemanticSource(round).Conditions, withoutSemanticSource(a).Conditions) {
 						t.Fatalf("round trip changed flat metadata: %+v", round.Conditions)
 					}
 					// Rendering can canonicalize NOT field to !field. Compare the
@@ -193,7 +193,7 @@ func TestBracketProvenanceMergeBoundaries(t *testing.T) {
 	}
 	legacyBracket := brackets[0]
 	legacyBracket.Bracketed = false
-	if !reflect.DeepEqual(legacyBracket, merged[0]) || len(DeduplicateConditions(append(brackets, merged...))) != 2 {
+	if !reflect.DeepEqual(legacyCondition(legacyBracket), legacyCondition(merged[0])) || len(DeduplicateConditions(append(brackets, merged...))) != 2 {
 		t.Fatal("legacy projections differ or bracket provenance was deduplicated")
 	}
 	empty := append(ExtractConditions(`name:[]`).Conditions, ExtractConditions(`name:''`).Conditions...)
