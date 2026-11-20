@@ -390,6 +390,12 @@ func (p *parser) parseValue() Value {
 }
 
 func (p *parser) parseScalar() Value {
+	// A *'...' hint after another operator or inside a list: classic FQL is
+	// property:[operator]value, with * as the operator after the colon.
+	if star := p.cur(); star.Type == TokenWord && star.Text == "*" && p.peekType(1) == TokenString && p.tokens[p.pos+1].Pos == star.End {
+		p.errorf("wildcard hint %q is valid only directly after ':'", "*")
+		p.next()
+	}
 	t := p.cur()
 	switch t.Type {
 	case TokenString:
