@@ -6,7 +6,8 @@ import "strings"
 // the way the author intended: markdown code fences are stripped, smart
 // quotes become ASCII quotes, and zero-width/non-breaking spaces are removed.
 func NormalizeQuery(query string) string {
-	q := strings.TrimSpace(query)
+	// Typography first: a leading BOM or zero-width space would hide the fence.
+	q := strings.TrimSpace(normalizeTypography(query))
 
 	// Strip markdown code fences: ```fql\n...\n``` or ```\n...\n```
 	if strings.HasPrefix(q, "```") {
@@ -23,7 +24,7 @@ func NormalizeQuery(query string) string {
 		}
 	}
 
-	return strings.TrimSpace(normalizeTypography(q))
+	return q
 }
 
 func normalizeTypography(query string) string {
