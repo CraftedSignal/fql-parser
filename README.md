@@ -24,6 +24,8 @@ Classic property/operator syntax follows the [official Falcon FQL guide](https:/
 `platform_name:!'Linux'`, `hostname:~'Server'`, `posts.count:>=10`, and
 `hostname:*'prod*'`. The last form keeps the wildcard hint in Operator (`:*`)
 and the quoted pattern in Value. Bare `hostname:*` remains a value comparison.
+A hint anywhere else, as in `hostname:!*'prod*'` or inside a list, is reported
+as an error.
 API endpoint restrictions can differ, especially for list combinations.
 
 ## Usage
