@@ -5,6 +5,7 @@ import "strings"
 // NormalizeQuery cleans pasted or machine-extracted query text so it lexes
 // the way the author intended: markdown code fences are stripped, smart
 // quotes become ASCII quotes, and zero-width/non-breaking spaces are removed.
+// Text inside an ASCII-quoted value is kept as written.
 func NormalizeQuery(query string) string {
 	// Typography first: a leading BOM or zero-width space would hide the fence.
 	q := strings.TrimSpace(normalizeTypography(query))
@@ -47,8 +48,15 @@ func normalizeTypography(query string) string {
 
 		switch current {
 		case '\u00a0':
+			if quote == '\'' || quote == '"' {
+				normalized.WriteRune(current)
+				continue
+			}
 			normalized.WriteByte(' ')
 		case '\u200b', '\u200c', '\u200d', '\ufeff':
+			if quote == '\'' || quote == '"' {
+				normalized.WriteRune(current)
+			}
 		case '\'', '"':
 			normalized.WriteRune(current)
 			if quote == 0 {
