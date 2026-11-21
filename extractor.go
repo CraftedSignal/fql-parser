@@ -233,7 +233,9 @@ func DeduplicateConditions(conditions []Condition) []Condition {
 
 // GetEventTypeFromConditions returns the canonical event type for a query
 // that filters on event_simpleName (e.g. "crowdstrike_processrollup2"), or ""
-// when no event type filter is present.
+// when no event type filter is present. Only a positive equality (`:`, `=`
+// or the wildcard-hinted `:*`) names an event type; negative, comparison and
+// text-match operators do not.
 func GetEventTypeFromConditions(result *ParseResult) string {
 	if result == nil {
 		return ""
@@ -241,6 +243,11 @@ func GetEventTypeFromConditions(result *ParseResult) string {
 	for _, c := range result.Conditions {
 		field := strings.ToLower(strings.TrimPrefix(c.Field, "#"))
 		if field != "event_simplename" || c.Negated {
+			continue
+		}
+		switch c.Operator {
+		case ":", "=", ":*":
+		default:
 			continue
 		}
 		value := c.Value
