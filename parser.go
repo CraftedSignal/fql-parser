@@ -107,10 +107,10 @@ func (p *parser) parsePipe() Pipe {
 	name := p.next().Text
 	pipe := Pipe{Name: name}
 	if p.cur().Type == TokenLParen {
-		p.next()
+		start := p.next().End
 		// Capture raw argument text until the matching close paren.
 		depth := 1
-		var args []string
+		end := len(p.input)
 		for p.cur().Type != TokenEOF {
 			t := p.cur()
 			if t.Type == TokenLParen {
@@ -119,24 +119,27 @@ func (p *parser) parsePipe() Pipe {
 			if t.Type == TokenRParen {
 				depth--
 				if depth == 0 {
+					end = t.Pos
 					p.next()
 					break
 				}
 			}
-			args = append(args, t.Text)
 			p.next()
 		}
 		if depth != 0 {
 			p.errorf("unterminated pipe arguments for %q", name)
 		}
-		pipe.Args = strings.Join(args, " ")
+		pipe.Args = strings.Trim(p.input[start:end], " \t\r\n")
 	} else {
 		// Bare arguments until the next pipe or EOF.
-		var args []string
+		start := p.cur().Pos
 		for p.cur().Type != TokenEOF && p.cur().Type != TokenPipe {
-			args = append(args, p.next().Text)
+			if p.cur().Type == TokenIllegal {
+				p.errorf("unterminated string in pipe arguments for %q", name)
+			}
+			p.next()
 		}
-		pipe.Args = strings.Join(args, " ")
+		pipe.Args = strings.Trim(p.input[start:p.cur().Pos], " \t\r\n")
 	}
 	return pipe
 }
