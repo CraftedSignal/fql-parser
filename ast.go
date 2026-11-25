@@ -153,12 +153,53 @@ func (q *Query) String() string {
 		sb.WriteString(" | ")
 		sb.WriteString(p.Name)
 		if p.Args != "" {
-			sb.WriteByte('(')
-			sb.WriteString(p.Args)
-			sb.WriteByte(')')
+			if balancedPipeArgs(p.Args) {
+				sb.WriteByte('(')
+				sb.WriteString(p.Args)
+				sb.WriteByte(')')
+			} else {
+				sb.WriteByte(' ')
+				sb.WriteString(p.Args)
+			}
 		}
 	}
 	return sb.String()
+}
+
+func balancedPipeArgs(args string) bool {
+	depth := 0
+	var quote byte
+	escaped := false
+	for i := 0; i < len(args); i++ {
+		ch := args[i]
+		if quote != 0 {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if ch == '\\' {
+				escaped = true
+				continue
+			}
+			if ch == quote {
+				quote = 0
+			}
+			continue
+		}
+
+		switch ch {
+		case '\'', '"':
+			quote = ch
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth < 0 {
+				return false
+			}
+		}
+	}
+	return quote == 0 && depth == 0
 }
 
 // ExprString renders a single expression node to text.
