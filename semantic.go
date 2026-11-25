@@ -30,7 +30,7 @@ func AnalyzeQuery(query string) (result *SemanticQuery) {
 	result = &SemanticQuery{}
 	p := newParser(query)
 	parsed := p.parseQuery()
-	extracted := ExtractConditions(query)
+	extracted := extractConditionsFromParser(query, p, parsed)
 
 	result.Conditions = cloneSemanticConditions(extracted.Conditions)
 	result.Searches = cloneSemanticStrings(extracted.Searches)

@@ -57,3 +57,22 @@ func TestBarePipeArgsUnterminatedStringIsReported(t *testing.T) {
 		}
 	}
 }
+
+func TestBarePipeArgsWithUnbalancedParenthesisRoundTrip(t *testing.T) {
+	query := `|0!(`
+	parsed, err := Parse(query)
+	if err != nil {
+		t.Fatalf("Parse(%q): %v", query, err)
+	}
+	rendered := parsed.String()
+	if rendered != ` | 0 !(` {
+		t.Fatalf("String() = %q, want bare pipe args preserved", rendered)
+	}
+	roundTrip, err := Parse(rendered)
+	if err != nil {
+		t.Fatalf("String() rendered %q, which does not parse: %v", rendered, err)
+	}
+	if !reflect.DeepEqual(roundTrip.Pipes, parsed.Pipes) || roundTrip.String() != rendered {
+		t.Fatalf("round trip of %q changed pipes from %+v to %+v", rendered, parsed.Pipes, roundTrip.Pipes)
+	}
+}

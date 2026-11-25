@@ -16,3 +16,10 @@ func TestNormalizeQueryStripsFenceAfterInvisiblePrefix(t *testing.T) {
 		}
 	}
 }
+
+func TestNormalizeQueryDoesNotSliceOverlappingFence(t *testing.T) {
+	query := "````0"
+	if got := NormalizeQuery(query); got != query {
+		t.Fatalf("NormalizeQuery(%q) = %q, want unchanged text", query, got)
+	}
+}

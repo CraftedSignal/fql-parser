@@ -108,9 +108,35 @@ func TestLexerEdgeBranches(t *testing.T) {
 	if !foundLT || !foundGTE || !foundNTilde {
 		t.Fatalf("missing expected tokens in %#v", tokens)
 	}
+
+	unicodeTokens := newLexer("é a").lex()
+	if got := unicodeTokens[1]; got.Pos != 3 || got.End != 4 || got.Col != 3 {
+		t.Fatalf("token after multibyte rune has incorrect position: %+v", got)
+	}
+	if got := unicodeTokens[len(unicodeTokens)-1]; got.Pos != 4 || got.Col != 4 {
+		t.Fatalf("EOF after multibyte rune has incorrect position: %+v", got)
+	}
+	quotedUnicodeTokens := newLexer("'é' a").lex()
+	if quotedUnicodeTokens[0].Text != "é" || quotedUnicodeTokens[1].Pos != 5 || quotedUnicodeTokens[1].Col != 5 {
+		t.Fatalf("quoted multibyte rune changed token text or following column: %+v", quotedUnicodeTokens)
+	}
+
 	illegal := newLexer(`'unterminated`).lex()
 	if len(illegal) == 0 || illegal[0].Type != TokenIllegal {
 		t.Fatalf("unterminated string should lex as illegal, got %#v", illegal)
+	}
+}
+
+func TestParserWhitespaceBoundaries(t *testing.T) {
+	if _, err := Parse("\f:0"); err == nil {
+		t.Fatal("form feed should not be accepted as an empty field")
+	}
+	query, err := Parse("field:1\u2003other:2")
+	if err != nil {
+		t.Fatalf("Unicode whitespace should separate query terms: %v", err)
+	}
+	if got, want := query.String(), "field:1 + other:2"; got != want {
+		t.Fatalf("query with Unicode whitespace rendered as %q, want %q", got, want)
 	}
 }
 
