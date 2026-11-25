@@ -127,6 +127,19 @@ func TestLexerEdgeBranches(t *testing.T) {
 	}
 }
 
+func TestParserWhitespaceBoundaries(t *testing.T) {
+	if _, err := Parse("\f:0"); err == nil {
+		t.Fatal("form feed should not be accepted as an empty field")
+	}
+	query, err := Parse("field:1\u2003other:2")
+	if err != nil {
+		t.Fatalf("Unicode whitespace should separate query terms: %v", err)
+	}
+	if got, want := query.String(), "field:1 + other:2"; got != want {
+		t.Fatalf("query with Unicode whitespace rendered as %q, want %q", got, want)
+	}
+}
+
 func TestNormalizeTypographyEdges(t *testing.T) {
 	input := "\ufeffCommandLine:\u201cwhoami\u201d\u00a0\u200b"
 	if got := NormalizeQuery(input); got != `CommandLine:"whoami"` {

@@ -2,6 +2,7 @@ package fql
 
 import (
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -102,10 +103,13 @@ func (l *lexer) lex() []Token {
 	for l.pos < len(l.input) {
 		startPos, startLine, startCol := l.pos, l.line, l.col
 		ch := l.peek()
+		r, width := utf8.DecodeRuneInString(l.input[l.pos:])
 
 		switch {
-		case ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n':
-			l.advance()
+		case unicode.IsSpace(r):
+			for range width {
+				l.advance()
+			}
 			continue
 
 		case ch == '\'' || ch == '"':
@@ -225,8 +229,14 @@ func (l *lexer) lexString(quote byte) (string, bool) {
 // lexWord consumes a run of non-boundary bytes.
 func (l *lexer) lexWord() string {
 	start := l.pos
-	for l.pos < len(l.input) && !wordBoundary(l.input[l.pos]) {
-		l.advance()
+	for l.pos < len(l.input) {
+		r, width := utf8.DecodeRuneInString(l.input[l.pos:])
+		if unicode.IsSpace(r) || wordBoundary(l.input[l.pos]) {
+			break
+		}
+		for range width {
+			l.advance()
+		}
 	}
 	return l.input[start:l.pos]
 }
