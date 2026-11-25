@@ -47,6 +47,10 @@ type ParseResult struct {
 // free-text searches, and pipe commands. It never panics: malformed input
 // yields a best-effort result with Errors populated.
 func ExtractConditions(query string) (result *ParseResult) {
+	return extractConditionsFromParser(query, nil, nil)
+}
+
+func extractConditionsFromParser(query string, p *parser, q *Query) (result *ParseResult) {
 	result = &ParseResult{Conditions: []Condition{}}
 	defer func() {
 		if r := recover(); r != nil {
@@ -57,8 +61,12 @@ func ExtractConditions(query string) (result *ParseResult) {
 		extractHook(query)
 	}
 
-	p := newParser(query)
-	q := p.parseQuery()
+	if p == nil {
+		p = newParser(query)
+	}
+	if q == nil {
+		q = p.parseQuery()
+	}
 	result.Errors = append(result.Errors, p.errors...)
 
 	if q.Expr != nil {
