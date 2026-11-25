@@ -12,7 +12,7 @@ func NormalizeQuery(query string) string {
 
 	// Strip markdown code fences: ```fql\n...\n``` or ```\n...\n```
 	if strings.HasPrefix(q, "```") {
-		if end := strings.LastIndex(q, "```"); end > 0 {
+		if end := strings.LastIndex(q, "```"); end >= 3 {
 			body := q[3:end]
 			if nl := strings.IndexByte(body, '\n'); nl >= 0 {
 				// Drop the info string on the opening fence line.
