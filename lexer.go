@@ -1,6 +1,9 @@
 package fql
 
-import "strings"
+import (
+	"strings"
+	"unicode/utf8"
+)
 
 // TokenType identifies the lexical class of a token.
 type TokenType int
@@ -50,10 +53,11 @@ func wordBoundary(ch byte) bool {
 }
 
 type lexer struct {
-	input string
-	pos   int
-	line  int
-	col   int
+	input              string
+	pos                int
+	line               int
+	col                int
+	utf8BytesRemaining int
 }
 
 func newLexer(input string) *lexer {
@@ -66,7 +70,12 @@ func (l *lexer) advance() byte {
 	if ch == '\n' {
 		l.line++
 		l.col = 1
+		l.utf8BytesRemaining = 0
+	} else if l.utf8BytesRemaining > 0 {
+		l.utf8BytesRemaining--
 	} else {
+		_, width := utf8.DecodeRuneInString(l.input[l.pos-1:])
+		l.utf8BytesRemaining = width - 1
 		l.col++
 	}
 	return ch
