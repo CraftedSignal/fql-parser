@@ -47,6 +47,12 @@ func TestParseListValue(t *testing.T) {
 	}
 }
 
+func TestParseListRequiresCommaSeparators(t *testing.T) {
+	if _, err := Parse(`event_simpleName:['ProcessRollup2' 'DnsRequest']`); err == nil {
+		t.Fatal("expected error for list elements without a comma")
+	}
+}
+
 func TestParseBracketedFieldPaths(t *testing.T) {
 	for _, query := range []string{
 		`TargetResources[0].userPrincipalName:*`,
