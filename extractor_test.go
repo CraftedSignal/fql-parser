@@ -169,8 +169,8 @@ func TestNormalizeQueryPreservesSmartApostropheInsideQuotedValue(t *testing.T) {
 	}
 }
 
-// TestPlatformCorpus covers the exact shapes the CraftedSignal translator and
-// hunt dialect emit — the primary consumers of this library.
+// TestPlatformCorpus covers platform-emitted filters and documented classic-FQL
+// API examples.
 func TestPlatformCorpus(t *testing.T) {
 	corpus := []struct {
 		query      string
@@ -182,6 +182,11 @@ func TestPlatformCorpus(t *testing.T) {
 		{`(RemotePort:445, RemotePort:3389) | timerange(24h)`, 1}, // merged same-field OR
 		{`event_simpleName:['DnsRequest'] + DomainName:'*.evil.example'`, 2},
 		{`TargetResources[0].userPrincipalName:* + properties.targetResources[].modifiedProperties[].displayName:'*keyCredentials*'`, 2},
+		// Documented classic-FQL API filters from FalconPy and Mindflow examples.
+		{`filename:'chrome.exe'`, 1}, // FalconPy filter discussion.
+		{`status:'open'+cve.cvss_v3_base_score:>9.0`, 2},
+		{`platform_name:'Windows'+product_type_desc:'Server'+last_seen:<'2024-01-15T00:00:00Z'`, 3},
+		{`status:'new',max_severity_displayname:['High','Critical']+tactic_id:'T1003'`, 3},
 	}
 	for _, tc := range corpus {
 		result := ExtractConditions(tc.query)
