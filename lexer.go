@@ -68,8 +68,10 @@ func newLexer(input string) *lexer {
 func (l *lexer) advance() byte {
 	ch := l.input[l.pos]
 	l.pos++
-	if ch == '\n' {
-		l.line++
+	if ch == '\r' || ch == '\n' {
+		if ch != '\n' || l.pos < 2 || l.input[l.pos-2] != '\r' {
+			l.line++
+		}
 		l.col = 1
 		l.utf8BytesRemaining = 0
 	} else if l.utf8BytesRemaining > 0 {
