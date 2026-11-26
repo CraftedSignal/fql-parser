@@ -133,6 +133,13 @@ supplied; do not infer brackets from `Alternatives`. External unkeyed Go
 This parser metadata change requires separate consumer adoption. It does not
 change endpoint evaluation or update downstream dependencies.
 
+## Query corpus
+
+Platform fixtures and documented classic-FQL API examples exercise Event Search
+filters, nested and bracketed field paths, scalar and list values, comparisons,
+negation, Boolean grouping, pipes, and wildcard matching. Tests assert parsed
+AST and extraction results rather than counting template-generated queries.
+
 ## License
 
 AGPL-3.0 — see [LICENSE](LICENSE).
