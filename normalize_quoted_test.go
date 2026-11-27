@@ -37,6 +37,7 @@ func TestNormalizeQueryPreservesApostropheInSmartQuotedValue(t *testing.T) {
 		want  string
 	}{
 		{query: "FileName:\u2018John's file\u2019", want: "John's file"},
+		{query: "FileName:\u2018GnuPG\u2019s OpenPGP\u2019", want: "GnuPG\u2019s OpenPGP"},
 		{query: "FileName:\u201cSay \"hello\" now\u201d", want: `Say "hello" now`},
 	} {
 		result := ExtractConditions(NormalizeQuery(test.query))
