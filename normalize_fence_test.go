@@ -17,6 +17,20 @@ func TestNormalizeQueryStripsFenceAfterInvisiblePrefix(t *testing.T) {
 	}
 }
 
+func TestNormalizeQueryStripsFenceAcrossLineEndings(t *testing.T) {
+	for _, lineEnding := range []string{"\n", "\r\n", "\r"} {
+		query := "```fql" + lineEnding + "CommandLine:'x'" + lineEnding + "```"
+		normalized := NormalizeQuery(query)
+		if normalized != "CommandLine:'x'" {
+			t.Errorf("NormalizeQuery(%q) = %q, want query without fence", query, normalized)
+		}
+		result := ExtractConditions(normalized)
+		if len(result.Errors) != 0 || len(result.Conditions) != 1 || len(result.Searches) != 0 || result.Conditions[0].Field != "CommandLine" || result.Conditions[0].Value != "x" {
+			t.Errorf("ExtractConditions(%q) = %+v, want CommandLine:'x'", query, result)
+		}
+	}
+}
+
 func TestNormalizeQueryDoesNotSliceOverlappingFence(t *testing.T) {
 	query := "````0"
 	if got := NormalizeQuery(query); got != query {
