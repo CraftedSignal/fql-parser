@@ -30,3 +30,19 @@ func TestNormalizeQueryKeepsInvisibleCharactersInQuotedValues(t *testing.T) {
 		t.Errorf("smart-quoted value not cleaned: %q", got)
 	}
 }
+
+func TestNormalizeQueryPreservesApostropheInSmartQuotedValue(t *testing.T) {
+	for _, test := range []struct {
+		query string
+		want  string
+	}{
+		{query: "FileName:\u2018John's file\u2019", want: "John's file"},
+		{query: "FileName:\u2018GnuPG\u2019s OpenPGP\u2019", want: "GnuPG\u2019s OpenPGP"},
+		{query: "FileName:\u201cSay \"hello\" now\u201d", want: `Say "hello" now`},
+	} {
+		result := ExtractConditions(NormalizeQuery(test.query))
+		if len(result.Errors) != 0 || len(result.Conditions) != 1 || result.Conditions[0].Value != test.want {
+			t.Errorf("normalizing smart quotes changed the value: normalized=%q result=%+v", NormalizeQuery(test.query), result)
+		}
+	}
+}

@@ -1,6 +1,10 @@
 package fql
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+	"unicode/utf8"
+)
 
 // NormalizeQuery cleans pasted or machine-extracted query text so it lexes
 // the way the author intended: markdown code fences are stripped, smart
@@ -38,7 +42,7 @@ func normalizeTypography(query string) string {
 
 	var quote rune
 	escaped := false
-	for _, current := range query {
+	for index, current := range query {
 		if escaped {
 			normalized.WriteRune(current)
 			escaped = false
@@ -62,6 +66,9 @@ func normalizeTypography(query string) string {
 				normalized.WriteRune(current)
 			}
 		case '\'', '"':
+			if quote == '\u2019' && current == '\'' || quote == '\u201d' && current == '"' {
+				normalized.WriteByte('\\')
+			}
 			normalized.WriteRune(current)
 			if quote == 0 {
 				quote = current
@@ -70,6 +77,10 @@ func normalizeTypography(query string) string {
 			}
 		case '\u2018', '\u2019':
 			if quote == '\'' || quote == '"' {
+				normalized.WriteRune(current)
+				continue
+			}
+			if quote == '\u2019' && current == '\u2019' && isWordInternalCurlyApostrophe(query, index) {
 				normalized.WriteRune(current)
 				continue
 			}
@@ -96,6 +107,16 @@ func normalizeTypography(query string) string {
 	}
 
 	return normalized.String()
+}
+
+func isWordInternalCurlyApostrophe(query string, index int) bool {
+	previous, _ := utf8.DecodeLastRuneInString(query[:index])
+	_, size := utf8.DecodeRuneInString(query[index:])
+	next, _ := utf8.DecodeRuneInString(query[index+size:])
+	isWordRune := func(r rune) bool {
+		return unicode.IsLetter(r) || unicode.IsNumber(r) || unicode.IsMark(r)
+	}
+	return isWordRune(previous) && isWordRune(next)
 }
 
 // isFenceInfoString reports whether s looks like a code-fence language tag
