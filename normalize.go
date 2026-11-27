@@ -62,6 +62,9 @@ func normalizeTypography(query string) string {
 				normalized.WriteRune(current)
 			}
 		case '\'', '"':
+			if quote == '\u2019' && current == '\'' || quote == '\u201d' && current == '"' {
+				normalized.WriteByte('\\')
+			}
 			normalized.WriteRune(current)
 			if quote == 0 {
 				quote = current
