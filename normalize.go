@@ -14,11 +14,15 @@ func NormalizeQuery(query string) string {
 	if strings.HasPrefix(q, "```") {
 		if end := strings.LastIndex(q, "```"); end >= 3 {
 			body := q[3:end]
-			if nl := strings.IndexByte(body, '\n'); nl >= 0 {
+			if nl := strings.IndexAny(body, "\r\n"); nl >= 0 {
 				// Drop the info string on the opening fence line.
 				firstLine := strings.TrimSpace(body[:nl])
 				if firstLine == "" || isFenceInfoString(firstLine) {
-					body = body[nl+1:]
+					lineEnd := nl + 1
+					if body[nl] == '\r' && lineEnd < len(body) && body[lineEnd] == '\n' {
+						lineEnd++
+					}
+					body = body[lineEnd:]
 				}
 			}
 			q = strings.TrimSpace(body)
