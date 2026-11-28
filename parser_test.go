@@ -126,6 +126,19 @@ func TestParseComparisons(t *testing.T) {
 	}
 }
 
+func TestParsePlusAfterWordEndingInE(t *testing.T) {
+	q := mustParse(t, `one+3`)
+	and, ok := q.Expr.(*AndExpr)
+	if !ok || len(and.Terms) != 2 {
+		t.Fatalf("one+3 should remain a conjunction, got %#v", q.Expr)
+	}
+	first, firstOK := and.Terms[0].(*SearchExpr)
+	second, secondOK := and.Terms[1].(*SearchExpr)
+	if !firstOK || first.Term != "one" || !secondOK || second.Term != "3" {
+		t.Fatalf("unexpected conjunction terms: %#v", and.Terms)
+	}
+}
+
 func TestParseWindowsPathValue(t *testing.T) {
 	q := mustParse(t, `ImageFileName:'C:\Windows\System32\cmd.exe'`)
 	cond := q.Expr.(*ConditionExpr)

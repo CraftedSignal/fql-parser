@@ -233,7 +233,7 @@ func (l *lexer) lexWord() string {
 	start := l.pos
 	for l.pos < len(l.input) {
 		r, width := utf8.DecodeRuneInString(l.input[l.pos:])
-		if l.input[l.pos] == '+' && l.pos > start && (l.input[l.pos-1] == 'e' || l.input[l.pos-1] == 'E') && l.pos+1 < len(l.input) && l.input[l.pos+1] >= '0' && l.input[l.pos+1] <= '9' {
+		if l.input[l.pos] == '+' && l.pos > start && (l.input[l.pos-1] == 'e' || l.input[l.pos-1] == 'E') && l.pos+1 < len(l.input) && l.input[l.pos+1] >= '0' && l.input[l.pos+1] <= '9' && unsignedNumber(l.input[start:l.pos-1]) {
 			l.advance()
 			continue
 		}
