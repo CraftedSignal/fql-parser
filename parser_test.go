@@ -113,6 +113,29 @@ func TestParseKeywordOperators(t *testing.T) {
 	}
 }
 
+func TestParseRejectsBooleanOperatorsWithoutOperands(t *testing.T) {
+	for _, query := range []string{
+		`OR a:'1'`,
+		`AND a:'1'`,
+		`a:'1' + OR b:'2'`,
+		`a:'1' AND OR b:'2'`,
+	} {
+		if _, err := Parse(query); err == nil {
+			t.Errorf("expected an error for misplaced Boolean operator in %q", query)
+		}
+	}
+}
+
+func TestParseBooleanKeywordsAsFieldNames(t *testing.T) {
+	for _, field := range []string{"AND", "OR", "and", "or"} {
+		query := field + `:'value'`
+		condition, ok := mustParse(t, query).Expr.(*ConditionExpr)
+		if !ok || condition.Field != field {
+			t.Errorf("expected %q to parse as a field name, got %#v", field, condition)
+		}
+	}
+}
+
 func TestParseGroupsAndPipes(t *testing.T) {
 	q := mustParse(t, `(RemotePort:445, RemotePort:3389) | timerange(24h)`)
 	if _, ok := q.Expr.(*GroupExpr); !ok {
