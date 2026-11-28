@@ -372,6 +372,9 @@ func (p *parser) parseValue() Value {
 			list = append(list, p.parseScalar())
 			if p.cur().Type == TokenComma {
 				p.next()
+				if p.cur().Type == TokenRBrack || p.cur().Type == TokenEOF {
+					p.errorf("expected list value after ','")
+				}
 			} else if p.cur().Type != TokenRBrack && p.cur().Type != TokenEOF {
 				p.errorf("expected ',' or ']' after list value")
 			}

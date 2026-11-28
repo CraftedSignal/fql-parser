@@ -48,8 +48,14 @@ func TestParseListValue(t *testing.T) {
 }
 
 func TestParseListRequiresCommaSeparators(t *testing.T) {
-	if _, err := Parse(`event_simpleName:['ProcessRollup2' 'DnsRequest']`); err == nil {
-		t.Fatal("expected error for list elements without a comma")
+	for _, query := range []string{
+		`event_simpleName:['ProcessRollup2' 'DnsRequest']`,
+		`event_simpleName:['ProcessRollup2',]`,
+		`event_simpleName:['ProcessRollup2','DnsRequest',]`,
+	} {
+		if _, err := Parse(query); err == nil {
+			t.Errorf("expected error for malformed list %q", query)
+		}
 	}
 }
 
