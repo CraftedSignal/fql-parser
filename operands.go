@@ -26,21 +26,9 @@ type Operand struct {
 	Items  []Operand   `json:"items,omitempty"`
 }
 
-func decimalDigits(s string) bool {
+func unsignedNumber(s string) bool {
 	if s == "" {
 		return false
-	}
-	for i := 0; i < len(s); i++ {
-		if s[i] < '0' || s[i] > '9' {
-			return false
-		}
-	}
-	return true
-}
-
-func signedNumber(s string) bool {
-	if strings.HasPrefix(s, "+") || strings.HasPrefix(s, "-") {
-		s = s[1:]
 	}
 	index := 0
 	for index < len(s) && s[index] >= '0' && s[index] <= '9' {
@@ -73,6 +61,13 @@ func signedNumber(s string) bool {
 		}
 	}
 	return index == len(s)
+}
+
+func signedNumber(s string) bool {
+	if strings.HasPrefix(s, "+") || strings.HasPrefix(s, "-") {
+		s = s[1:]
+	}
+	return unsignedNumber(s)
 }
 
 // operandFromValue is shared by both extraction views. An incomplete AST value

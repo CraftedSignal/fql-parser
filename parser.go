@@ -410,8 +410,8 @@ func (p *parser) parseScalar() Value {
 		p.next()
 		return Value{Scalar: t.Text, Source: p.input[t.Pos:t.End]}
 	case TokenPlus:
-		// A leading + is a signed decimal only when directly followed by digits.
-		if p.peekType(1) == TokenWord && p.tokens[p.pos+1].Pos == t.End && decimalDigits(p.tokens[p.pos+1].Text) {
+		// A leading + is a signed number only when directly followed by a number.
+		if p.peekType(1) == TokenWord && p.tokens[p.pos+1].Pos == t.End && unsignedNumber(p.tokens[p.pos+1].Text) {
 			p.next()
 			word := p.next()
 			return Value{Scalar: "+" + word.Text, Source: p.input[t.Pos:word.End]}
