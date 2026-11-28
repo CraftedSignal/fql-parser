@@ -38,11 +38,41 @@ func decimalDigits(s string) bool {
 	return true
 }
 
-func signedDecimal(s string) bool {
+func signedNumber(s string) bool {
 	if strings.HasPrefix(s, "+") || strings.HasPrefix(s, "-") {
 		s = s[1:]
 	}
-	return decimalDigits(s)
+	index := 0
+	for index < len(s) && s[index] >= '0' && s[index] <= '9' {
+		index++
+	}
+	if index == 0 {
+		return false
+	}
+	if index < len(s) && s[index] == '.' {
+		index++
+		fractionStart := index
+		for index < len(s) && s[index] >= '0' && s[index] <= '9' {
+			index++
+		}
+		if index == fractionStart {
+			return false
+		}
+	}
+	if index < len(s) && (s[index] == 'e' || s[index] == 'E') {
+		index++
+		if index < len(s) && (s[index] == '+' || s[index] == '-') {
+			index++
+		}
+		exponentStart := index
+		for index < len(s) && s[index] >= '0' && s[index] <= '9' {
+			index++
+		}
+		if index == exponentStart {
+			return false
+		}
+	}
+	return index == len(s)
 }
 
 // operandFromValue is shared by both extraction views. An incomplete AST value
@@ -74,7 +104,7 @@ func operandFromValue(value Value) *Operand {
 	case "null":
 		operand.Kind = OperandNull
 	default:
-		if signedDecimal(value.Scalar) {
+		if signedNumber(value.Scalar) {
 			operand.Kind = OperandNumber
 		} else {
 			operand.Kind = OperandBare

@@ -90,6 +90,9 @@ func TestTypedScalarOperandsPreserveAuthoredSyntax(t *testing.T) {
 		quoted               bool
 	}{
 		{`42`, `42`, `42`, OperandNumber, false},
+		{`9.0`, `9.0`, `9.0`, OperandNumber, false},
+		{`-0.125`, `-0.125`, `-0.125`, OperandNumber, false},
+		{`1e3`, `1e3`, `1e3`, OperandNumber, false},
 		{`'42'`, `'42'`, `42`, OperandString, true},
 		{`true`, `true`, `true`, OperandBool, false},
 		{`'true'`, `'true'`, `true`, OperandString, true},
