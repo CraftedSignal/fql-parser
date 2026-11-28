@@ -90,6 +90,13 @@ func TestTypedScalarOperandsPreserveAuthoredSyntax(t *testing.T) {
 		quoted               bool
 	}{
 		{`42`, `42`, `42`, OperandNumber, false},
+		{`9.0`, `9.0`, `9.0`, OperandNumber, false},
+		{`-0.125`, `-0.125`, `-0.125`, OperandNumber, false},
+		{`1e3`, `1e3`, `1e3`, OperandNumber, false},
+		{`1e+3`, `1e+3`, `1e+3`, OperandNumber, false},
+		{`-1e+3`, `-1e+3`, `-1e+3`, OperandNumber, false},
+		{`+0.125`, `+0.125`, `+0.125`, OperandNumber, false},
+		{`+1e3`, `+1e3`, `+1e3`, OperandNumber, false},
 		{`'42'`, `'42'`, `42`, OperandString, true},
 		{`true`, `true`, `true`, OperandBool, false},
 		{`'true'`, `'true'`, `true`, OperandString, true},
@@ -114,7 +121,11 @@ func TestTypedScalarOperandsPreserveAuthoredSyntax(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			ast := parsed.Expr.(*ConditionExpr).Value
+			condition, ok := parsed.Expr.(*ConditionExpr)
+			if !ok {
+				t.Fatalf("expected a scalar condition, got %#v", parsed.Expr)
+			}
+			ast := condition.Value
 			if ast.Source != tc.source || ast.Quoted != tc.quoted || ast.Scalar != tc.value && tc.kind != OperandNull {
 				t.Fatalf("AST lost source/quoted/value: %+v", ast)
 			}

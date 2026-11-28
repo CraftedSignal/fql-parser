@@ -48,8 +48,14 @@ func TestParseListValue(t *testing.T) {
 }
 
 func TestParseListRequiresCommaSeparators(t *testing.T) {
-	if _, err := Parse(`event_simpleName:['ProcessRollup2' 'DnsRequest']`); err == nil {
-		t.Fatal("expected error for list elements without a comma")
+	for _, query := range []string{
+		`event_simpleName:['ProcessRollup2' 'DnsRequest']`,
+		`event_simpleName:['ProcessRollup2',]`,
+		`event_simpleName:['ProcessRollup2','DnsRequest',]`,
+	} {
+		if _, err := Parse(query); err == nil {
+			t.Errorf("expected error for malformed list %q", query)
+		}
 	}
 }
 
@@ -123,6 +129,19 @@ func TestParseComparisons(t *testing.T) {
 	first := and.Terms[0].(*ConditionExpr)
 	if first.Operator != ">" || first.Value.Scalar != "1024" {
 		t.Fatalf("unexpected comparison: %+v", first)
+	}
+}
+
+func TestParsePlusAfterWordEndingInE(t *testing.T) {
+	q := mustParse(t, `one+3`)
+	and, ok := q.Expr.(*AndExpr)
+	if !ok || len(and.Terms) != 2 {
+		t.Fatalf("one+3 should remain a conjunction, got %#v", q.Expr)
+	}
+	first, firstOK := and.Terms[0].(*SearchExpr)
+	second, secondOK := and.Terms[1].(*SearchExpr)
+	if !firstOK || first.Term != "one" || !secondOK || second.Term != "3" {
+		t.Fatalf("unexpected conjunction terms: %#v", and.Terms)
 	}
 }
 
