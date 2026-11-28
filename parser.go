@@ -207,9 +207,13 @@ func (p *parser) startsUnary() bool {
 		return true
 	case TokenWord:
 		// OR/AND keywords are handled by the callers, not new terms.
-		return !strings.EqualFold(p.cur().Text, "OR") && !strings.EqualFold(p.cur().Text, "AND")
+		return !isBooleanKeyword(p.cur().Text)
 	}
 	return false
+}
+
+func isBooleanKeyword(word string) bool {
+	return strings.EqualFold(word, "OR") || strings.EqualFold(word, "AND")
 }
 
 func (p *parser) parseUnary(depth int) Expr {
@@ -219,6 +223,11 @@ func (p *parser) parseUnary(depth int) Expr {
 		return &SearchExpr{}
 	}
 	t := p.cur()
+	if t.Type == TokenWord && isBooleanKeyword(t.Text) && p.conditionOperatorIndex() < 0 {
+		p.errorf("unexpected Boolean operator %q", t.Text)
+		p.next()
+		return &SearchExpr{Term: t.Text}
+	}
 	if t.Type == TokenBang {
 		p.next()
 		// `!field:value` reads as a negated condition; `!(...)` as a negated group.
